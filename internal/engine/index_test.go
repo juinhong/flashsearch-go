@@ -16,3 +16,17 @@ func TestNewIndex(t *testing.T) {
 		t.Error("Tag map should be initialized, not nil")
 	}
 }
+
+func TestAddProduct(t *testing.T) {
+	idx := NewTagIndex()
+	productID := uint32(101)
+	tag := "color:blue"
+
+	// This function doesn't exist yet!
+	idx.Add(productID, tag)
+
+	// Verify the ID was actually added
+	if !idx.Contains(productID, tag) {
+		t.Errorf("Expected ID %d to be found under tag %s", productID, tag)
+	}
+}
