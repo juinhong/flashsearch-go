@@ -30,3 +30,20 @@ func TestAddProduct(t *testing.T) {
 		t.Errorf("Expected ID %d to be found under tag %s", productID, tag)
 	}
 }
+
+func TestContainProduct(t *testing.T) {
+	idx := NewTagIndex()
+
+	tag := "color:blue"
+
+	productID := uint32(101)
+	idx.Add(productID, tag)
+	if !idx.Contains(productID, tag) {
+		t.Errorf("Expected ID %d to be found under tag %s", productID, tag)
+	}
+
+	incorrectProductID := uint32(102)
+	if idx.Contains(incorrectProductID, tag) {
+		t.Errorf("ID %d shouldn't be found under tag %s", incorrectProductID, tag)
+	}
+}
