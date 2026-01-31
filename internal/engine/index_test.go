@@ -79,3 +79,20 @@ func TestMultiAdd(t *testing.T) {
 		}
 	}
 }
+
+func TestBulkLoad(t *testing.T) {
+	idx := NewTagIndex()
+	tag := "category:electronics"
+
+	ids := make([]uint32, 10000)
+	for i := 0; i < 10000; i++ {
+		ids[i] = uint32(i)
+	}
+
+	idx.AddMany(ids, tag)
+
+	count := idx.Tags[tag].GetCardinality()
+	if count != 10000 {
+		t.Errorf("Expected 10,000 IDs, but got %d", count)
+	}
+}

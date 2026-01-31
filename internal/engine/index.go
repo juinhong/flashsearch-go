@@ -34,3 +34,11 @@ func (ti *TagIndex) Contains(id uint32, tag string) bool {
 
 	return bm.Contains(id)
 }
+
+func (ti *TagIndex) AddMany(ids []uint32, tag string) {
+	if _, exists := ti.Tags[tag]; !exists {
+		ti.Tags[tag] = roaring.New()
+	}
+
+	ti.Tags[tag].AddMany(ids)
+}
