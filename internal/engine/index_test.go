@@ -96,3 +96,33 @@ func TestBulkLoad(t *testing.T) {
 		t.Errorf("Expected 10,000 IDs, but got %d", count)
 	}
 }
+
+func TestIntersection(t *testing.T) {
+	idx := NewTagIndex()
+
+	// Setup: Red items (1, 2, 3)
+	idx.Add(1, "color:red")
+	idx.Add(2, "color:red")
+	idx.Add(3, "color:red")
+
+	// Setup: Large items (2, 3, 4)
+	idx.Add(2, "size:large")
+	idx.Add(3, "size:large")
+	idx.Add(4, "size:large")
+
+	// The logic we need to build:
+	results := idx.SearchAND("color:red", "size:large")
+
+	// Assertions: Only IDs 2 and 3 should be returned
+	if results.GetCardinality() != 2 {
+		t.Errorf("Expected 2 results, got %d", results.GetCardinality())
+	}
+
+	if !results.Contains(2) || !results.Contains(3) {
+		t.Error("Result set missing ID 2 or 3")
+	}
+
+	if results.Contains(1) || results.Contains(4) {
+		t.Error("Result set contains IDs that do not match both tags")
+	}
+}

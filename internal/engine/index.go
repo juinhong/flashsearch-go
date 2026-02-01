@@ -42,3 +42,29 @@ func (ti *TagIndex) AddMany(ids []uint32, tag string) {
 
 	ti.Tags[tag].AddMany(ids)
 }
+
+func (ti *TagIndex) SearchAND(tags ...string) *roaring.Bitmap {
+	if len(tags) == 0 {
+		return roaring.New()
+	}
+
+	// Start with a copy of the first tag's bitmap
+	result, exists := ti.Tags[tags[0]]
+	if !exists {
+		result = roaring.New()
+	}
+
+	// We clone the first one so we don't modify the original index during the search
+	finalResult := result.Clone()
+
+	// Intersect with the remaining tags
+	for i := 1; i < len(tags); i++ {
+		other, exists := ti.Tags[tags[i]]
+		if !exists {
+			return roaring.New()
+		}
+		finalResult.And(other)
+	}
+
+	return finalResult
+}
