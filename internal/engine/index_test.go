@@ -126,3 +126,29 @@ func TestIntersection(t *testing.T) {
 		t.Error("Result set contains IDs that do not match both tags")
 	}
 }
+
+func TestUnion(t *testing.T) {
+	idx := NewTagIndex()
+
+	// Setup: Red has IDs 1, 2. Blue has IDs 2, 3.
+	idx.Add(1, "color:red")
+	idx.Add(2, "color:red")
+	idx.Add(2, "color:blue")
+	idx.Add(3, "color:blue")
+
+	// We want the union of Red and Blue
+	tags := []string{"color:red", "color:blue"}
+	result := idx.Union(tags)
+
+	// The result should have IDs 1, 2, 3 (no duplicates)
+	if result.GetCardinality() != 3 {
+		t.Errorf("Expected cardinality 3, got %d", result.GetCardinality())
+	}
+
+	expected := []uint32{1, 2, 3}
+	for _, id := range expected {
+		if !result.Contains(id) {
+			t.Errorf("Expected result to contain ID %d", id)
+		}
+	}
+}

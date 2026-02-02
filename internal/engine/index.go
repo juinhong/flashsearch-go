@@ -68,3 +68,14 @@ func (ti *TagIndex) SearchAND(tags ...string) *roaring.Bitmap {
 
 	return finalResult
 }
+
+func (ti *TagIndex) Union(tags []string) *roaring.Bitmap {
+	result := roaring.New()
+	for _, tagName := range tags {
+		if bm, exists := ti.Tags[tagName]; exists {
+			result.Or(bm)
+		}
+	}
+
+	return result
+}
