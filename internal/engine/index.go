@@ -79,3 +79,22 @@ func (ti *TagIndex) Union(tags []string) *roaring.Bitmap {
 
 	return result
 }
+
+func (ti *TagIndex) Difference(tags []string) *roaring.Bitmap {
+	includeBM, existsInclude := ti.Tags[tags[0]]
+	excludeBM, existsExclude := ti.Tags[tags[1]]
+
+	if !existsInclude {
+		return roaring.New()
+	}
+
+	if !existsExclude {
+		return includeBM.Clone()
+	}
+
+	// Create a copy so we don't modify the original 'include' tag
+	result := includeBM.Clone()
+	result.AndNot(excludeBM)
+
+	return result
+}

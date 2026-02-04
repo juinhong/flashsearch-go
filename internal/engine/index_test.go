@@ -152,3 +152,29 @@ func TestUnion(t *testing.T) {
 		}
 	}
 }
+
+func TestDifference(t *testing.T) {
+	idx := NewTagIndex()
+
+	// Setup: IDs 1, 2, 3 are Red. IDs 2, 4 are on Sale.
+	idx.Add(1, "color:red")
+	idx.Add(2, "color:red")
+	idx.Add(3, "color:red")
+
+	idx.Add(2, "status:sale")
+	idx.Add(4, "status:sale")
+
+	// Logic: Red AND NOT Sale
+	tags := []string{"color:red", "status:sale"}
+	result := idx.Difference(tags)
+
+	// ID 2 should be removed because it is on Sale.
+	// Result should be [1, 3]
+	if result.GetCardinality() != 2 {
+		t.Errorf("Expected cardinality 2, got %d", result.GetCardinality())
+	}
+
+	if result.Contains(2) {
+		t.Error("Result should NOT contain ID 2 (it's on sale)")
+	}
+}
