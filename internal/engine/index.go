@@ -98,3 +98,17 @@ func (ti *TagIndex) Difference(tags []string) *roaring.Bitmap {
 
 	return result
 }
+
+func (ti *TagIndex) Intersect(tags []string) *roaring.Bitmap {
+	bmA, existsA := ti.Tags[tags[0]]
+	bmB, existsB := ti.Tags[tags[1]]
+
+	if !existsA || !existsB {
+		return roaring.New()
+	}
+
+	result := bmA.Clone()
+	result.And(bmB)
+
+	return result
+}

@@ -178,3 +178,65 @@ func TestDifference(t *testing.T) {
 		t.Error("Result should NOT contain ID 2 (it's on sale)")
 	}
 }
+
+func TestCompound(t *testing.T) {
+	idx := NewTagIndex()
+
+	// Tag A (Nike): IDs 1, 2
+	idx.Add(1, "brand:nike")
+	idx.Add(2, "brand:nike")
+
+	// Tag B (Adidas): IDs 3, 4
+	idx.Add(3, "brand:adidas")
+	idx.Add(4, "brand:adidas")
+
+	// Tag C (On Sale): IDs 2, 4
+	idx.Add(2, "status:sale")
+	idx.Add(4, "status:sale")
+
+	// Goal: (Nike OR Adidas) AND Sale
+	// 1. Union (Nike, Adidas) -> {1, 2, 3, 4}
+	// 2. Intersect with Sale -> {2, 4}
+
+	tags := []string{"brand:nike", "brand:adidas"}
+	brands := idx.Union(tags)
+	saleBM, _ := idx.Tags["status:sale"]
+
+	// Intersect the result of the Union with the Sale bitmap
+	brands.And(saleBM)
+
+	if brands.GetCardinality() != 2 {
+		t.Errorf("Expected 2 items, got %d", brands.GetCardinality())
+	}
+
+	if !brands.Contains(2) || !brands.Contains(4) {
+		t.Errorf("Result missing expected IDs 2 or 4")
+	}
+}
+
+func TestEmptyResults(t *testing.T) {
+	idx := NewTagIndex()
+
+	// Add some data so the index isn't totally empty
+	idx.Add(1, "color:red")
+
+	// 1. Test Intersect with a non-existent tag
+	// "color:red" AND "brand:apple" (which doesn't exist)
+	tags := []string{"color:red", "brand:apple"}
+	result := idx.Intersect(tags)
+
+	if result == nil {
+		t.Fatal("Intersect returned nil; expected an empty bitmap")
+	}
+
+	if result.GetCardinality() != 0 {
+		t.Errorf("Expected 0 results, got %d", result.GetCardinality())
+	}
+
+	// 2. Test Union with only non-existent tags
+	tags = []string{"fake:1", "fake:2"}
+	resultUnion := idx.Union(tags)
+	if resultUnion == nil {
+		t.Fatal("Union returned nil; expected an empty bitmap")
+	}
+}
