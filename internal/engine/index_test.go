@@ -240,3 +240,39 @@ func TestEmptyResults(t *testing.T) {
 		t.Fatal("Union returned nil; expected an empty bitmap")
 	}
 }
+
+func TestRunOptimization(t *testing.T) {
+	idx := NewTagIndex()
+	tag := "bulk-import"
+
+	// 1. Add 1,000 sequential IDs.
+	// Initially, Roaring usually stores these in an Array or Bitmap Container.
+	for i := uint32(1); i <= 1000; i++ {
+		idx.Add(i, tag)
+	}
+
+	bm := idx.Tags[tag]
+
+	// Get size before optimization
+	sizeBefore := bm.GetSerializedSizeInBytes()
+
+	// 2. Perform the Magic
+	// This scans the bitmap and converts sequences into RunContainers (Start/Length)
+	bm.RunOptimize()
+
+	// Get stats after optimization
+	statsAfter := bm.Stats()
+
+	// Get size after
+	sizeAfter := bm.GetSerializedSizeInBytes()
+
+	// 3. Assertion: RunContainers should increase, and overall size should decrease
+	if statsAfter.RunContainers == 0 {
+		t.Error("RunOptimize failed to create a RunContainer for sequential data")
+	}
+
+	if sizeAfter >= sizeBefore {
+		t.Errorf("Optimization didn't reduce size. Before: %d, After: %d",
+			sizeBefore, sizeAfter)
+	}
+}
