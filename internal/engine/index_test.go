@@ -1,6 +1,9 @@
 package engine
 
-import "testing"
+import (
+	"bytes"
+	"testing"
+)
 
 func TestNewIndex(t *testing.T) {
 	// 1. Act: Try to create a new index
@@ -274,5 +277,37 @@ func TestRunOptimization(t *testing.T) {
 	if sizeAfter >= sizeBefore {
 		t.Errorf("Optimization didn't reduce size. Before: %d, After: %d",
 			sizeBefore, sizeAfter)
+	}
+}
+
+func TestSerialization(t *testing.T) {
+	idx := NewTagIndex()
+	tag := "persistent-tag"
+
+	// Add some data to ensure we have something to serialize
+	idx.Add(1, tag)
+	idx.Add(100, tag)
+	idx.Add(65536, tag) // This forces at least two containers
+
+	bm := idx.Tags[tag]
+
+	// Use a bytes.Buffer as our "disk"
+	var buf bytes.Buffer
+
+	// WriteTo writes the bitmap in the standard Roaring format
+	n, err := bm.WriteTo(&buf)
+
+	if err != nil {
+		t.Errorf("Failed to serialize bitmap: %v", err)
+	}
+
+	if n == 0 || buf.Len() == 0 {
+		t.Error("Serialized buffer is empty")
+	}
+
+	// Assertion: Ensure the serialized size matches the method we used yesterday
+	if int64(buf.Len()) != int64(bm.GetSerializedSizeInBytes()) {
+		t.Errorf("Buffer length %d doesn't match expected size %d",
+			buf.Len(), bm.GetSerializedSizeInBytes())
 	}
 }
