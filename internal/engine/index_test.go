@@ -2,6 +2,7 @@ package engine
 
 import (
 	"bytes"
+	"github.com/RoaringBitmap/roaring"
 	"testing"
 )
 
@@ -309,5 +310,36 @@ func TestSerialization(t *testing.T) {
 	if int64(buf.Len()) != int64(bm.GetSerializedSizeInBytes()) {
 		t.Errorf("Buffer length %d doesn't match expected size %d",
 			buf.Len(), bm.GetSerializedSizeInBytes())
+	}
+}
+
+func TestDeserialization(t *testing.T) {
+	// 1. Setup original data
+	original := roaring.New()
+	original.Add(1)
+	original.Add(100)
+	original.Add(70000) // Puts data in Container 0 and Container 1
+
+	// 2. Serialize to a buffer
+	var buf bytes.Buffer
+	_, err := original.WriteTo(&buf)
+	if err != nil {
+		t.Fatalf("Failed to serialize: %v", err)
+	}
+
+	// 3. Deserialize into a NEW object
+	restored := roaring.New()
+	_, err = restored.ReadFrom(&buf)
+	if err != nil {
+		t.Fatalf("Failed to deserialize: %v", err)
+	}
+
+	// 4. Assertions
+	if !original.Equals(restored) {
+		t.Error("Restored bitmap does not match original")
+	}
+
+	if restored.GetCardinality() != 3 {
+		t.Errorf("Expected cardinality 3, got %d", restored.GetCardinality())
 	}
 }
