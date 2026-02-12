@@ -112,3 +112,35 @@ func (ti *TagIndex) Intersect(tags []string) *roaring.Bitmap {
 
 	return result
 }
+
+func (ti *TagIndex) FetchPage(bm *roaring.Bitmap, offset int, pageSize int) []uint32 {
+	cardinality := int(bm.GetCardinality())
+	if offset >= cardinality || pageSize <= 0 {
+		return []uint32{}
+	}
+
+	it := bm.ManyIterator()
+
+	// 1. "Burn" the offset
+	// We use a small reusable buffer to discard the IDs before our page
+	if offset > 0 {
+		discardBuf := make([]uint32, 1024)
+		for discarded := 0; discarded < offset; {
+			toRead := offset - discarded
+			if toRead > len(discardBuf) {
+				toRead = len(discardBuf)
+			}
+			count := it.NextMany(discardBuf[:toRead])
+			discarded += count
+			if count == 0 {
+				break
+			}
+		}
+	}
+
+	// 2. Collect the actual page
+	results := make([]uint32, pageSize)
+	actualCount := it.NextMany(results)
+
+	return results[:actualCount]
+}

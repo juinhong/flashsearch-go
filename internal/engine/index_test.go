@@ -2,8 +2,10 @@ package engine
 
 import (
 	"bytes"
-	"github.com/RoaringBitmap/roaring"
+	"reflect"
 	"testing"
+
+	"github.com/RoaringBitmap/roaring"
 )
 
 func TestNewIndex(t *testing.T) {
@@ -341,5 +343,84 @@ func TestDeserialization(t *testing.T) {
 
 	if restored.GetCardinality() != 3 {
 		t.Errorf("Expected cardinality 3, got %d", restored.GetCardinality())
+	}
+}
+
+func BenchmarkRoaringIntersection(b *testing.B) {
+	// 1. Setup: Create two dense bitmaps with 1M items each
+	bm1 := roaring.New()
+	bm2 := roaring.New()
+
+	for i := uint32(0); i < 1000000; i++ {
+		bm1.Add(i)
+		// Offset bm2 slightly so the intersection actually has work to do
+		bm2.Add(i + 500000)
+	}
+
+	// Run the actual benchmark
+	b.ResetTimer() // Don't count the setup time!
+	for i := 0; i < b.N; i++ {
+		_ = roaring.And(bm1, bm2)
+	}
+}
+
+func BenchmarkMapIntersection(b *testing.B) {
+	// 1. Setup: Two maps with 1M items each
+	map1 := make(map[uint32]bool)
+	map2 := make(map[uint32]bool)
+
+	for i := uint32(0); i < 1000000; i++ {
+		map1[i] = true
+		map2[i+500000] = true // Offset by 50%
+	}
+
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		// Manual intersection
+		result := make(map[uint32]bool)
+		// Smallest-to-largest optimization (manual)
+		if len(map1) < len(map2) {
+			for k := range map1 {
+				if map2[k] {
+					result[k] = true
+				}
+			}
+		} else {
+			for k := range map2 {
+				if map1[k] {
+					result[k] = true
+				}
+			}
+		}
+	}
+}
+
+func TestFetchPage(t *testing.T) {
+	ti := NewTagIndex()
+	bm := roaring.New()
+	// Add IDs 0, 10, 20, 30, 40, 50
+	for i := uint32(0); i <= 5; i++ {
+		bm.Add(i * 10)
+	}
+
+	tests := []struct {
+		name     string
+		offset   int
+		pageSize int
+		want     []uint32
+	}{
+		{"First Page", 0, 2, []uint32{0, 10}},
+		{"Second Page", 2, 2, []uint32{20, 30}},
+		{"Last Partial Page", 4, 2, []uint32{40, 50}},
+		{"Out of Bounds", 10, 2, []uint32{}},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := ti.FetchPage(bm, tt.offset, tt.pageSize)
+			if !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("FetchPage(%d, %d) = %v; want %v", tt.offset, tt.pageSize, got, tt.want)
+			}
+		})
 	}
 }
