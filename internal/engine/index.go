@@ -1,6 +1,8 @@
 package engine
 
 import (
+	"container/heap"
+
 	"github.com/RoaringBitmap/roaring"
 )
 
@@ -143,4 +145,32 @@ func (ti *TagIndex) FetchPage(bm *roaring.Bitmap, offset int, pageSize int) []ui
 	actualCount := it.NextMany(results)
 
 	return results[:actualCount]
+}
+
+func (ti *TagIndex) GetTopKTags(k int) []string {
+	h := &TagHeap{}
+	heap.Init(h)
+
+	for name, bm := range ti.Tags {
+		ts := TagSize{
+			Name: name,
+			Size: bm.GetCardinality(),
+		}
+
+		if h.Len() < k {
+			heap.Push(h, ts)
+		} else if ts.Size > (*h)[0].Size {
+			// If current tag is bigger than the "smallest of the best"
+			heap.Pop(h)
+			heap.Push(h, ts)
+		}
+	}
+
+	// Extract and reverse (since Pop gives smallest first)
+	result := make([]string, h.Len())
+	for i := h.Len() - 1; i >= 0; i-- {
+		result[i] = heap.Pop(h).(TagSize).Name
+	}
+
+	return result
 }

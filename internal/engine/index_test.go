@@ -424,3 +424,27 @@ func TestFetchPage(t *testing.T) {
 		})
 	}
 }
+
+func TestTopK(t *testing.T) {
+	ti := NewTagIndex()
+
+	// 1. Setup tags with varying densities
+	ti.Tags["small"] = roaring.BitmapOf(1)
+	ti.Tags["medium"] = roaring.BitmapOf(1, 2, 3, 4, 5)
+	ti.Tags["huge"] = roaring.New()
+	for i := uint32(0); i < 1000; i++ {
+		ti.Tags["huge"].Add(i)
+	}
+
+	// 2. Run the TopK logic
+	results := ti.GetTopKTags(2)
+
+	// 3. Assertions
+	if len(results) != 2 {
+		t.Fatalf("Expected 2 tags, got %d", len(results))
+	}
+
+	if results[0] != "huge" || results[1] != "medium" {
+		t.Errorf("Wrong order. Got %v", results)
+	}
+}
