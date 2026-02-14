@@ -6,12 +6,6 @@ import (
 	"github.com/RoaringBitmap/roaring"
 )
 
-type TagIndex struct {
-	// Key: Tag Name (e.g., "color:red")
-	// Value: Roaring Bitmap of Item IDs
-	Tags map[string]*roaring.Bitmap
-}
-
 func NewTagIndex() *TagIndex {
 	return &TagIndex{
 		Tags: make(map[string]*roaring.Bitmap),
@@ -113,6 +107,26 @@ func (ti *TagIndex) Intersect(tags []string) *roaring.Bitmap {
 	result.And(bmB)
 
 	return result
+}
+
+func (ti *TagIndex) IntersectMany(tags []string) *roaring.Bitmap {
+	var bitmaps []*roaring.Bitmap
+	for _, name := range tags {
+		if bm, exists := ti.Tags[name]; exists {
+			bitmaps = append(bitmaps, bm)
+		}
+	}
+
+	if len(bitmaps) == 0 {
+		return roaring.New()
+	}
+
+	// Note: In a real app, you'd sort 'bitmaps' by cardinality here (S2L)
+	res := bitmaps[0].Clone()
+	for i := 1; i < len(bitmaps); i++ {
+		res.And(bitmaps[i])
+	}
+	return res
 }
 
 func (ti *TagIndex) FetchPage(bm *roaring.Bitmap, offset int, pageSize int) []uint32 {
