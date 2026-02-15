@@ -7,6 +7,8 @@ import (
 	"log"
 	"strings"
 	"time"
+
+	"github.com/RoaringBitmap/roaring"
 )
 
 func main() {
@@ -41,16 +43,27 @@ func main() {
 
 func setupData() *engine.TagIndex {
 	ti := engine.NewTagIndex()
+	// Create tags with different distribution patterns
+	ti.Tags["all"] = roaring.New()  // 5,000,000 IDs
+	ti.Tags["even"] = roaring.New() // 2,500,000 IDs
+	ti.Tags["tri"] = roaring.New()  // 1,666,666 IDs
+	ti.Tags["rare"] = roaring.New() // 1 ID
 
-	for i := uint32(0); i < 1000000; i++ {
+	fmt.Println("🏗️  Generating 5,000,000 IDs...")
+	for i := uint32(0); i < 5000000; i++ {
+		ti.Tags["all"].Add(i)
 		if i%2 == 0 {
-			ti.Add(i, "tech")
+			ti.Tags["even"].Add(i)
 		}
-
 		if i%3 == 0 {
-			ti.Add(i, "go")
+			ti.Tags["tri"].Add(i)
 		}
 	}
+	ti.Tags["rare"].Add(4999999)
 
+	// Optimize the bitmaps for the best performance
+	for _, bm := range ti.Tags {
+		bm.RunOptimize() // Crucial for RLE compression
+	}
 	return ti
 }
