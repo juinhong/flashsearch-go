@@ -32,6 +32,7 @@ flashsearch-go/
 │       ├── model.go       # Data structures
 │       └── util.go        # Iterators & Pagination helpers
 └── go.mod
+```
 
 ## 🛠️ Getting Started
 1. Installation
