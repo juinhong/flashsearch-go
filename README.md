@@ -32,3 +32,17 @@ flashsearch-go/
 │       ├── model.go       # Data structures
 │       └── util.go        # Iterators & Pagination helpers
 └── go.mod
+
+## 🛠️ Getting Started
+1. Installation
+git clone [https://github.com/juinhong/flashsearch-go](https://github.com/juinhong/flashsearch-go)
+cd flashsearch-go
+go mod tidy
+
+## Running the CLI
+Run a search across multiple tags:
+go run ./cmd/flashsearch -tags=golang,fast,database -limit=10
+
+## Running Benchmarks
+To see the hardware efficiency in action:
+go test ./internal/engine/... -bench=. -benchmem
